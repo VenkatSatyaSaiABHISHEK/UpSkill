@@ -5,7 +5,9 @@ import {
   query, 
   where, 
   Timestamp,
-  onSnapshot
+  onSnapshot,
+  doc,
+  updateDoc
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "./firebase";
 
@@ -210,3 +212,42 @@ export function subscribeSubmissions(
     callback(local);
   });
 }
+
+/**
+ * Update an existing learning update
+ */
+export async function updateSubmission(
+  id: string,
+  updatedFields: Partial<Omit<Submission, "id" | "createdAt" | "studentId">>
+): Promise<void> {
+  // Always update local storage first
+  if (typeof window !== "undefined") {
+    const local = getLocalStorageSubmissions();
+    const index = local.findIndex((sub) => sub.id === id);
+    if (index !== -1) {
+      local[index] = {
+        ...local[index],
+        ...updatedFields
+      };
+      localStorage.setItem("upskill_submissions", JSON.stringify(local));
+    }
+  }
+
+  if (!isFirebaseConfigured || !db) {
+    return;
+  }
+
+  // Active Firebase Mode
+  try {
+    const docRef = doc(db, "learningUpdates", id);
+    // Sanitize updatedFields to remove undefined values that Firestore doesn't support
+    const sanitizedFields = Object.fromEntries(
+      Object.entries(updatedFields).filter((entry) => entry[1] !== undefined)
+    );
+    await updateDoc(docRef, sanitizedFields);
+  } catch (error) {
+    console.error("Error updating submission in Firestore:", error);
+    // Keep local storage changes
+  }
+}
+

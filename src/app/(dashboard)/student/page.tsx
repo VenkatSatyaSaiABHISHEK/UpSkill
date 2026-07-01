@@ -211,14 +211,25 @@ export default function StudentDashboard() {
                       )}
                     </div>
 
-                    <Button 
-                      onClick={() => setSelectedSub(sub)}
-                      variant="outline" 
-                      size="sm" 
-                      className="h-8 text-[10px] font-bold border-[#E5E5E5] dark:border-[#27272a] bg-transparent hover:bg-[#F5F5F5] dark:hover:bg-[#18181b] rounded-lg cursor-pointer"
-                    >
-                      View Details
-                    </Button>
+                    <div className="flex gap-2">
+                      <Link href={`/student/submit?edit=${sub.id}`}>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="h-8 text-[10px] font-bold border-[#E5E5E5] dark:border-[#27272a] bg-transparent hover:bg-[#F5F5F5] dark:hover:bg-[#18181b] rounded-lg cursor-pointer"
+                        >
+                          Edit
+                        </Button>
+                      </Link>
+                      <Button 
+                        onClick={() => setSelectedSub(sub)}
+                        variant="outline" 
+                        size="sm" 
+                        className="h-8 text-[10px] font-bold border-[#E5E5E5] dark:border-[#27272a] bg-transparent hover:bg-[#F5F5F5] dark:hover:bg-[#18181b] rounded-lg cursor-pointer"
+                      >
+                        View Details
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -360,6 +371,15 @@ export default function StudentDashboard() {
                       </div>
                     </div>
                   )}
+
+                  {/* Edit submission action inside drawer */}
+                  <div className="pt-4 border-t border-[#E5E5E5] dark:border-[#222225] flex gap-3">
+                    <Link href={`/student/submit?edit=${selectedSub.id}`} className="flex-1" onClick={() => setSelectedSub(null)}>
+                      <Button className="w-full h-10 text-xs font-bold rounded-xl bg-[#111111] hover:bg-zinc-800 dark:bg-[#ffffff] dark:text-[#111111] dark:hover:bg-zinc-200 transition-colors cursor-pointer uppercase tracking-wider">
+                        Edit Submission
+                      </Button>
+                    </Link>
+                  </div>
 
                 </div>
 

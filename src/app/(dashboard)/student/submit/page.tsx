@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { createSubmission } from "@/lib/submissions";
+import { createSubmission, updateSubmission, getSubmissions } from "@/lib/submissions";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -16,9 +16,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function SubmitUpdatePage() {
+function SubmitUpdatePageContent() {
   const { user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const editId = searchParams.get("edit");
+  const isEditMode = !!editId;
 
   // Form states
   const [date, setDate] = useState(() => {
@@ -35,6 +39,7 @@ export default function SubmitUpdatePage() {
   
   // File upload states
   const [file, setFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadedUrl, setUploadedUrl] = useState<string | undefined>(undefined);
@@ -45,6 +50,44 @@ export default function SubmitUpdatePage() {
 
   // Drag and drop states
   const [dragActive, setDragActive] = useState(false);
+
+  // Fetch and load submission if in edit mode
+  useEffect(() => {
+    if (isEditMode && user?.uid && editId) {
+      const loadSubmission = async () => {
+        try {
+          const allSubs = await getSubmissions(user.uid);
+          const sub = allSubs.find((s) => s.id === editId);
+          if (sub) {
+            setDate(sub.date);
+            setSession(sub.session);
+            setMentorName(sub.mentorName);
+            setTopic(sub.topic);
+            setSummary(sub.summary);
+            setTaskAssigned(sub.taskAssigned);
+            setTaskDescription(sub.taskDescription || "");
+            setNotes(sub.notes || "");
+            setUploadedUrl(sub.fileUrl);
+            setFileName(sub.fileName);
+            setFilePublicId(sub.filePublicId);
+          } else {
+            toast.error("Submission not found.");
+          }
+        } catch (error) {
+          console.error("Failed to load submission for editing:", error);
+          toast.error("Failed to load submission details.");
+        }
+      };
+      loadSubmission();
+    }
+  }, [isEditMode, editId, user]);
+
+  // Keep mentorName sync with user fallback when user loads
+  useEffect(() => {
+    if (user?.mentorName && !mentorName && !isEditMode) {
+      setMentorName(user.mentorName);
+    }
+  }, [user, mentorName, isEditMode]);
 
   // Handle file drop/select
   const handleFile = (selectedFile: File) => {
@@ -100,6 +143,7 @@ export default function SubmitUpdatePage() {
       setUploadedUrl(data.secure_url);
       setFilePublicId(data.public_id);
       setFileResourceType(data.resource_type);
+      setFileName(fileObj.name);
       toast.success("File uploaded successfully.");
     } catch (err: unknown) {
       console.error("Upload failed:", err);
@@ -145,6 +189,7 @@ export default function SubmitUpdatePage() {
     }
     setFile(null);
     setUploadedUrl(undefined);
+    setFileName(undefined);
     setFilePublicId(undefined);
     setFileResourceType(undefined);
     setUploadProgress(0);
@@ -167,32 +212,50 @@ export default function SubmitUpdatePage() {
     }
 
     setIsSubmitting(true);
-    const submitToastId = toast.loading("Saving learning update...");
+    const submitToastId = toast.loading(isEditMode ? "Updating learning update..." : "Saving learning update...");
 
     try {
-      await createSubmission({
-        studentId: user?.uid || "mock-student-id",
-        studentName: user?.fullName || "Jane Doe",
-        rollNumber: user?.rollNumber || "22CSE1042",
-        branch: user?.branch || "Computer Science",
-        domain: user?.domain || "Full Stack Web",
-        date,
-        session,
-        mentorName,
-        topic,
-        summary,
-        taskAssigned,
-        taskDescription: taskAssigned ? taskDescription : undefined,
-        notes: notes.trim() ? notes : undefined,
-        fileUrl: uploadedUrl,
-        fileName: file?.name,
-        filePublicId
-      });
-
-      toast.success("Learning update submitted successfully!", { id: submitToastId });
+      if (isEditMode && editId) {
+        await updateSubmission(editId, {
+          date,
+          session,
+          mentorName,
+          topic,
+          summary,
+          taskAssigned,
+          taskDescription: taskAssigned ? taskDescription : undefined,
+          notes: notes.trim() ? notes : undefined,
+          fileUrl: uploadedUrl,
+          fileName: fileName,
+          filePublicId
+        });
+        toast.success("Learning update updated successfully!", { id: submitToastId });
+      } else {
+        await createSubmission({
+          studentId: user?.uid || "mock-student-id",
+          studentName: user?.fullName || "Jane Doe",
+          rollNumber: user?.rollNumber || "22CSE1042",
+          branch: user?.branch || "Computer Science",
+          domain: user?.domain || "Full Stack Web",
+          date,
+          session,
+          mentorName,
+          topic,
+          summary,
+          taskAssigned,
+          taskDescription: taskAssigned ? taskDescription : undefined,
+          notes: notes.trim() ? notes : undefined,
+          fileUrl: uploadedUrl,
+          fileName: file?.name || fileName,
+          filePublicId
+        });
+        toast.success("Learning update submitted successfully!", { id: submitToastId });
+      }
+      
       router.push("/student");
-    } catch {
-      toast.error("Failed to submit update. Please try again.", { id: submitToastId });
+    } catch (err) {
+      console.error("Submission failed:", err);
+      toast.error(isEditMode ? "Failed to update. Please try again." : "Failed to submit update. Please try again.", { id: submitToastId });
       setIsSubmitting(false);
     }
   };
@@ -210,10 +273,10 @@ export default function SubmitUpdatePage() {
         {/* Headline */}
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#111111] dark:text-[#ffffff]">
-            Submit Session Update
+            {isEditMode ? "Edit Session Update" : "Submit Session Update"}
           </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5 font-medium">
-            Record your daily upskill training progress for mentor review.
+            {isEditMode ? "Modify your logged daily upskill training progress." : "Record your daily upskill training progress for mentor review."}
           </p>
         </div>
 
@@ -385,12 +448,14 @@ export default function SubmitUpdatePage() {
                 Attachments (PDF, DOCX, PPT, JPG/PNG)
               </label>
 
-              {file ? (
+              {file || uploadedUrl ? (
                 <div className="p-3.5 border border-[#E5E5E5] dark:border-[#222225] bg-[#F5F5F5] dark:bg-[#18181b] rounded-xl flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-3">
                     <Paperclip className="w-5 h-5 text-zinc-400 shrink-0" />
                     <div className="flex flex-col text-left">
-                      <span className="text-xs font-bold truncate max-w-[280px] text-[#111111] dark:text-[#ffffff]">{file.name}</span>
+                      <span className="text-xs font-bold truncate max-w-[280px] text-[#111111] dark:text-[#ffffff]">
+                        {file ? file.name : (fileName || "Attached File")}
+                      </span>
                       {uploading ? (
                         <span className="text-[10px] text-zinc-400 animate-pulse">Uploading {uploadProgress}%...</span>
                       ) : (
@@ -449,12 +514,12 @@ export default function SubmitUpdatePage() {
                 {isSubmitting ? (
                   <>
                     <div className="w-4 h-4 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                    Logging Update...
+                    {isEditMode ? "Updating Update..." : "Logging Update..."}
                   </>
                 ) : (
                   <>
                     <PlusCircle className="w-4.5 h-4.5" />
-                    Submit Learning Update
+                    {isEditMode ? "Update Learning Update" : "Submit Learning Update"}
                   </>
                 )}
               </Button>
@@ -464,5 +529,17 @@ export default function SubmitUpdatePage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function SubmitUpdatePage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 md:px-8 py-16 text-center text-zinc-500 font-semibold animate-pulse">
+        Loading submission form...
+      </div>
+    }>
+      <SubmitUpdatePageContent />
+    </Suspense>
   );
 }

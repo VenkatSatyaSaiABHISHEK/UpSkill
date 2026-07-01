@@ -195,14 +195,26 @@ export default function HistoryPage() {
                           </span>
                         )}
                       </td>
-                      <td className="p-4 text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-7 text-[10px] font-bold hover:bg-[#F5F5F5] dark:hover:bg-[#18181b] cursor-pointer"
-                        >
-                          Review
-                        </Button>
+                      <td className="p-4 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-2">
+                          <Link href={`/student/submit?edit=${sub.id}`}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-7 text-[10px] font-bold hover:bg-[#F5F5F5] dark:hover:bg-[#18181b] cursor-pointer"
+                            >
+                              Edit
+                            </Button>
+                          </Link>
+                          <Button 
+                            onClick={() => setSelectedSub(sub)}
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 text-[10px] font-bold hover:bg-[#F5F5F5] dark:hover:bg-[#18181b] cursor-pointer"
+                          >
+                            Review
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -232,9 +244,14 @@ export default function HistoryPage() {
                     </h4>
                     <p className="text-[11px] text-zinc-400 mt-1">Trainer: {sub.mentorName}</p>
                   </div>
-                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#E5E5E5]/50 dark:border-[#222225]/50">
+                  <div className="flex items-center justify-between pt-3 mt-3 border-t border-[#E5E5E5]/50 dark:border-[#222225]/50" onClick={(e) => e.stopPropagation()}>
                     <span className="text-[10px] text-zinc-400">Task: <strong>{sub.taskAssigned ? "Yes" : "No"}</strong></span>
-                    <span className="text-xs font-semibold text-[#111111] dark:text-[#ffffff]">Details &rarr;</span>
+                    <div className="flex items-center gap-3">
+                      <Link href={`/student/submit?edit=${sub.id}`}>
+                        <span className="text-xs font-semibold text-zinc-500 hover:text-[#111111] dark:hover:text-white">Edit</span>
+                      </Link>
+                      <span className="text-xs font-semibold text-[#111111] dark:text-[#ffffff] cursor-pointer" onClick={() => setSelectedSub(sub)}>Details &rarr;</span>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -365,6 +382,15 @@ export default function HistoryPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Edit submission action inside drawer */}
+                  <div className="pt-4 border-t border-[#E5E5E5] dark:border-[#222225] flex gap-3">
+                    <Link href={`/student/submit?edit=${selectedSub.id}`} className="flex-1" onClick={() => setSelectedSub(null)}>
+                      <Button className="w-full h-10 text-xs font-bold rounded-xl bg-[#111111] hover:bg-zinc-800 dark:bg-[#ffffff] dark:text-[#111111] dark:hover:bg-zinc-200 transition-colors cursor-pointer uppercase tracking-wider">
+                        Edit Submission
+                      </Button>
+                    </Link>
+                  </div>
 
                 </div>
 
