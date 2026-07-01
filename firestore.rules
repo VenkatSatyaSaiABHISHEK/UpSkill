@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper to check if requesting user has Admin privileges safely
+    function isAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper to check if requesting user matches the target UID
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // User Accounts collection rules
+    match /users/{userId} {
+      allow read: if true; // Allow lookup query by roll number before auth session starts
+      allow write: if isAdmin() || isOwner(userId) || (request.auth != null && !exists(/databases/$(database)/documents/users/$(request.auth.uid)));
+    }
+
+    // Detailed Students Directory profiles rules
+    match /students/{studentId} {
+      allow read: if true; // Allow verification queries
+      allow write: if isAdmin() || isOwner(studentId);
+    }
+
+    // Learning Updates log submissions rules
+    match /learningUpdates/{updateId} {
+      allow read: if isAdmin() || (request.auth != null && resource.data.studentId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.studentId == request.auth.uid;
+      allow update, delete: if isAdmin() || (request.auth != null && resource.data.studentId == request.auth.uid);
+    }
+
+    // Settings collection rules
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Activity Logs audit trail collection rules
+    match /activityLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
