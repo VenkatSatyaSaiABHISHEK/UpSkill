@@ -123,6 +123,9 @@ export default function AdminDashboardPage() {
   // Selected Submission detailed view drawer
   const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
 
+  // Selected Domain Trainees view modal
+  const [selectedDomainForView, setSelectedDomainForView] = useState<string | null>(null);
+
   // Weekly reports helpers & state
   const isImageUrl = (url?: string) => {
     if (!url) return false;
@@ -935,42 +938,49 @@ export default function AdminDashboardPage() {
                   className="space-y-6"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* SVG Bar Chart */}
                     <Card className="md:col-span-2 border border-white/60 dark:border-zinc-800/40 bg-white/50 dark:bg-black/30">
                       <CardHeader className="p-6">
                         <CardTitle className="text-sm font-bold">Domain Participation Metrics</CardTitle>
                       </CardHeader>
                       <CardContent className="p-6 pt-0 space-y-4">
                         <div className="space-y-3">
-                          <div>
-                            <div className="flex justify-between text-[11px] font-semibold mb-1">
-                              <span>Full Stack Web Development</span>
-                              <span>{students.filter(s => s.domain?.includes("Full Stack")).length} Students</span>
-                            </div>
-                            <div className="w-full h-2.5 rounded-full bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
-                              <div className="h-full bg-zinc-950 dark:bg-zinc-50 rounded-full" style={{ width: "65%" }} />
-                            </div>
-                          </div>
+                          {(() => {
+                            const activeDomains = Array.from(new Set(students.map(s => s.domain).filter(Boolean)));
+                            const domainsToRender = activeDomains.length > 0 
+                              ? activeDomains.map(dom => {
+                                  const count = students.filter(s => s.domain === dom).length;
+                                  return { domain: dom, count };
+                                }).sort((a, b) => b.count - a.count)
+                              : [
+                                  { domain: "Full Stack Web Development", count: 0 },
+                                  { domain: "Frontend Engineering", count: 0 },
+                                  { domain: "Firebase Architectures", count: 0 }
+                                ];
 
-                          <div>
-                            <div className="flex justify-between text-[11px] font-semibold mb-1">
-                              <span>Frontend Engineering</span>
-                              <span>{students.filter(s => s.domain?.includes("Frontend")).length} Students</span>
-                            </div>
-                            <div className="w-full h-2.5 rounded-full bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
-                              <div className="h-full bg-sky-500 rounded-full" style={{ width: "40%" }} />
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="flex justify-between text-[11px] font-semibold mb-1">
-                              <span>Firebase Architectures</span>
-                              <span>{students.filter(s => s.domain?.includes("Firebase")).length} Students</span>
-                            </div>
-                            <div className="w-full h-2.5 rounded-full bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
-                              <div className="h-full bg-indigo-500 rounded-full" style={{ width: "20%" }} />
-                            </div>
-                          </div>
+                            return domainsToRender.map((item, index) => {
+                              const pct = totalStudents > 0 ? (item.count / totalStudents) * 100 : (index === 0 ? 65 : index === 1 ? 40 : 20);
+                              const barColorClass = index % 3 === 0 
+                                ? "bg-zinc-950 dark:bg-zinc-50" 
+                                : index % 3 === 1 
+                                  ? "bg-sky-500" 
+                                  : "bg-indigo-500";
+                              return (
+                                <div 
+                                  key={item.domain} 
+                                  onClick={() => setSelectedDomainForView(item.domain)}
+                                  className="group cursor-pointer hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 p-2.5 rounded-xl border border-transparent hover:border-zinc-200/50 dark:hover:border-zinc-800/30 transition-all"
+                                >
+                                  <div className="flex justify-between text-[11px] font-semibold mb-1.5">
+                                    <span className="group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">{item.domain}</span>
+                                    <span className="text-[10px] text-muted-foreground font-bold">{item.count} {item.count === 1 ? "Student" : "Students"}</span>
+                                  </div>
+                                  <div className="w-full h-2 rounded-full bg-zinc-100 dark:bg-zinc-900 overflow-hidden">
+                                    <div className={`h-full ${barColorClass} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
                         </div>
                       </CardContent>
                     </Card>
@@ -1579,6 +1589,106 @@ export default function AdminDashboardPage() {
                   </Button>
                 </div>
               </form>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* --- DOMAIN STUDENTS LIST MODAL --- */}
+      <AnimatePresence>
+        {selectedDomainForView && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedDomainForView(null)}
+              className="fixed inset-0 bg-black z-40 cursor-pointer"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[80vh]"
+            >
+              <div className="p-5 border-b border-zinc-100 dark:border-zinc-800/50 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/10">
+                <div>
+                  <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-50 uppercase tracking-wide">
+                    Trainees in {selectedDomainForView}
+                  </h3>
+                  <p className="text-[10px] text-zinc-400 font-semibold mt-0.5">
+                    {students.filter(s => s.domain === selectedDomainForView).length} students registered in this domain
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelectedDomainForView(null)}
+                  className="h-8 w-8 rounded-lg"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="p-5 overflow-y-auto space-y-3.5">
+                {students.filter(s => s.domain === selectedDomainForView).length === 0 ? (
+                  <p className="text-center text-xs text-muted-foreground py-6 font-semibold">
+                    No students currently registered in this domain.
+                  </p>
+                ) : (
+                  students
+                    .filter(s => s.domain === selectedDomainForView)
+                    .map((student) => (
+                      <div
+                        key={student.uid}
+                        className="flex items-center gap-3.5 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900/30 border border-zinc-100 dark:border-zinc-800/40 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all text-xs"
+                      >
+                        <Image
+                          src={getAvatar(student.avatarUrl, student.rollNumber)}
+                          alt={student.fullName}
+                          width={36}
+                          height={36}
+                          className="w-9 h-9 rounded-full object-cover shrink-0 border border-zinc-200/50"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-bold text-zinc-900 dark:text-zinc-50 block truncate">{student.fullName}</span>
+                          <span className="text-[9px] text-zinc-400 font-semibold block mt-0.5">
+                            {student.rollNumber || "No Roll Number"} &middot; {student.branch || "General"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[10px] px-2.5 font-bold cursor-pointer"
+                            onClick={() => {
+                              setSelectedDomainForView(null);
+                              handleEditStudent(student);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[10px] px-2.5 font-bold cursor-pointer"
+                            onClick={() => {
+                              setSelectedDomainForView(null);
+                              // Load history
+                              const history = submissions.filter(sub => sub.studentId === student.uid || sub.rollNumber === student.rollNumber);
+                              setStudentHistoryList(history);
+                              setSelectedStudent(student);
+                              setShowHistoryModal(true);
+                            }}
+                          >
+                            History
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
             </motion.div>
           </>
         )}

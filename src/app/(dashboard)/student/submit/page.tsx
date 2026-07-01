@@ -11,9 +11,7 @@ import {
   Paperclip, 
   X, 
   UploadCloud, 
-  PlusCircle,
-  Sparkles,
-  Check
+  PlusCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,11 +42,6 @@ export default function SubmitUpdatePage() {
   const [fileResourceType, setFileResourceType] = useState<string | undefined>(undefined);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Groq AI states
-  const [aiLoadingAction, setAiLoadingAction] = useState<string | null>(null);
-  const [aiAutofillResult, setAiAutofillResult] = useState("");
-  const [showAutofillModal, setShowAutofillModal] = useState(false);
 
   // Drag and drop states
   const [dragActive, setDragActive] = useState(false);
@@ -155,37 +148,6 @@ export default function SubmitUpdatePage() {
     setFilePublicId(undefined);
     setFileResourceType(undefined);
     setUploadProgress(0);
-  };
-
-  const triggerAI = async (aiAction: string, textPayload: string) => {
-    if (!textPayload.trim()) {
-      toast.error(aiAction === "autofill" ? "Please enter a session topic or summary details first." : "Please enter text first.");
-      return;
-    }
-    setAiLoadingAction(aiAction);
-    try {
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: aiAction, payload: textPayload })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-
-      if (aiAction === "rewrite") {
-        setNotes(data.text);
-        toast.success("Notes refined professionally.");
-      } else if (aiAction === "autofill") {
-        setAiAutofillResult(data.text);
-        setShowAutofillModal(true);
-        toast.success("AI learning summary draft is ready.");
-      }
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "AI failed to process.";
-      toast.error(errMsg);
-    } finally {
-      setAiLoadingAction(null);
-    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -329,17 +291,8 @@ export default function SubmitUpdatePage() {
 
             {/* Row 3: Learning Summary */}
             <div>
-              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
                 Learning Summary
-                <button
-                  type="button"
-                  onClick={() => triggerAI("autofill", summary || topic)}
-                  className="text-[9px] text-[#111111] dark:text-[#ffffff] font-extrabold hover:underline cursor-pointer flex items-center gap-1.5 capitalize"
-                  disabled={aiLoadingAction !== null}
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  {aiLoadingAction === "autofill" ? "Writing..." : "Autofill with AI"}
-                </button>
               </label>
               <textarea
                 placeholder="What key concepts did you master during this session? (minimum 20 chars)..."
@@ -413,16 +366,8 @@ export default function SubmitUpdatePage() {
 
             {/* Row 5: Notes */}
             <div>
-              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+              <label className="block text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-2">
                 Additional Notes (Optional)
-                <button
-                  type="button"
-                  onClick={() => triggerAI("rewrite", notes)}
-                  className="text-[9px] text-[#111111] dark:text-[#ffffff] font-extrabold hover:underline cursor-pointer lowercase"
-                  disabled={aiLoadingAction !== null}
-                >
-                  {aiLoadingAction === "rewrite" ? "Rewriting..." : "Professionalize with AI"}
-                </button>
               </label>
               <Input
                 type="text"
@@ -518,65 +463,6 @@ export default function SubmitUpdatePage() {
           </form>
         </div>
       </motion.div>
-
-      {/* AI Autofill Preview Modal */}
-      <AnimatePresence>
-        {showAutofillModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#000000]/40 backdrop-blur-sm">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-              className="bg-[#FFFFFF] dark:bg-[#111113] border border-[#E5E5E5] dark:border-[#222225] w-full max-w-lg rounded-2xl shadow-xl overflow-hidden flex flex-col"
-            >
-              {/* Modal Header */}
-              <div className="p-4 border-b border-[#E5E5E5] dark:border-[#222225] flex items-center justify-between bg-[#F5F5F5]/30 dark:bg-[#18181b]/10">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
-                  <span className="text-xs font-bold text-[#111111] dark:text-[#ffffff] uppercase tracking-wider">AI Generated Summary</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAutofillModal(false)}
-                  className="p-1 rounded-lg hover:bg-[#F5F5F5] dark:hover:bg-[#18181b] transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4 text-zinc-400" />
-                </button>
-              </div>
-
-              {/* Modal Body */}
-              <div className="p-5 overflow-y-auto max-h-[300px] text-xs font-medium leading-relaxed text-[#111111] dark:text-zinc-300">
-                <p className="bg-[#F5F5F5]/40 dark:bg-[#18181b]/30 p-4 rounded-xl border border-[#E5E5E5]/50 dark:border-[#27272a]/30 whitespace-pre-wrap">
-                  {aiAutofillResult}
-                </p>
-              </div>
-
-              {/* Modal Actions */}
-              <div className="p-4 border-t border-[#E5E5E5] dark:border-[#222225] bg-[#F5F5F5]/30 dark:bg-[#18181b]/10 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAutofillModal(false)}
-                  className="px-3.5 py-1.5 rounded-xl border border-[#E5E5E5] dark:border-[#222225] text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-[#F5F5F5] dark:hover:bg-[#18181b] transition-all cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSummary(aiAutofillResult);
-                    setShowAutofillModal(false);
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl bg-[#111111] dark:bg-[#ffffff] text-xs font-bold text-[#ffffff] dark:text-[#111111] hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  Accept & Paste
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
