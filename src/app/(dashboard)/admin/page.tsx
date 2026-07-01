@@ -967,7 +967,7 @@ export default function AdminDashboardPage() {
                               return (
                                 <div 
                                   key={item.domain} 
-                                  onClick={() => setSelectedDomainForView(item.domain)}
+                                  onClick={() => setSelectedDomainForView(item.domain || "")}
                                   className="group cursor-pointer hover:bg-zinc-50/50 dark:hover:bg-zinc-900/20 p-2.5 rounded-xl border border-transparent hover:border-zinc-200/50 dark:hover:border-zinc-800/30 transition-all"
                                 >
                                   <div className="flex justify-between text-[11px] font-semibold mb-1.5">
