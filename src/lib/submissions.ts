@@ -151,8 +151,13 @@ export async function createSubmission(
 
   // Active Firebase Mode
   try {
+    // Sanitize newSub to remove undefined values that Firestore doesn't support
+    const sanitizedSub = Object.fromEntries(
+      Object.entries(newSub).filter((entry) => entry[1] !== undefined)
+    );
+
     const docRef = await addDoc(collection(db, "learningUpdates"), {
-      ...newSub,
+      ...sanitizedSub,
       createdAt: Timestamp.now()
     });
     return {
